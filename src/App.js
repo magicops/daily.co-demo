@@ -61,7 +61,6 @@ export default function App() {
       newCallObject.join({ url: url });
     } else {
       setAppState(STATE_HAIRCHECK);
-      await newCallObject.preAuth({ url }); // add a meeting token here if your room is private
       await newCallObject.startCamera();
     }
   }, []);
@@ -78,28 +77,19 @@ export default function App() {
    */
   const startLeavingCall = useCallback(() => {
     if (!callObject) return;
-    // If we're in the error state, we've already "left", so just clean up
-    if (appState === STATE_ERROR) {
-      callObject.destroy().then(() => {
-        setRoomUrl(null);
-        setCallObject(null);
-        setAppState(STATE_IDLE);
-      });
-    } else {
-      /* This will trigger a `left-meeting` event, which in turn will trigger
-      the full clean-up as seen in handleNewMeetingState() below.*/
-      setAppState(STATE_LEAVING);
-      callObject.leave();
-    }
-  }, [callObject, appState]);
+    setAppState(STATE_LEAVING);
+    callObject.leave();
+  }, [callObject]);
 
   /**
    * Change room function
    */
   const switchRoom = useCallback(async (url) => {
-    await startLeavingCall();
-    startHairCheck(url, true);
-  }, [startHairCheck, startLeavingCall]);
+    callObject.leave();
+    setTimeout(() => {
+      callObject.join({ url: url });
+    }, 1000);
+  }, [callObject]);
 
   /**
    * If a room's already specified in the page's URL when the component mounts,
@@ -138,11 +128,11 @@ export default function App() {
           setAppState(STATE_JOINED);
           break;
         case 'left-meeting':
-          callObject.destroy().then(() => {
-            // setRoomUrl(null);
-            // setCallObject(null);
-            // setAppState(STATE_IDLE);
-          });
+          // callObject.destroy().then(() => {
+          // setRoomUrl(null);
+          // setCallObject(null);
+          // setAppState(STATE_IDLE);
+          // });
           break;
         case 'error':
           setAppState(STATE_ERROR);
@@ -203,27 +193,24 @@ export default function App() {
     }
 
     // No API errors? Let's check our hair then.
-    if (showHairCheck) {
+    if (showHairCheck || showCall) {
       return (
         <DailyProvider callObject={callObject}>
-          <HairCheck joinCall={joinCall} cancelCall={startLeavingCall} />
-        </DailyProvider>
-      );
-    }
-
-    // No API errors, we passed the hair check, and we've joined the call? Then show the call.
-    if (showCall) {
-      return (
-        <DailyProvider callObject={callObject}>
-          <div className='call-wrapper'>
-            <RoomsPanel
-              roomUrl={roomUrl}
-              switchRoom={switchRoom}
-            />
-            <Call />
-            <ParticipantsPanel />
-          </div>
-          <Tray leaveCall={startLeavingCall} />
+          {showHairCheck ? (
+            <HairCheck joinCall={joinCall} cancelCall={startLeavingCall} />
+          ) : (
+            <DailyProvider callObject={callObject}>
+              <div className='call-wrapper'>
+                <RoomsPanel
+                  roomUrl={roomUrl}
+                  switchRoom={switchRoom}
+                />
+                <Call />
+                <ParticipantsPanel />
+              </div>
+              <Tray leaveCall={startLeavingCall} />
+            </DailyProvider>
+          )}
         </DailyProvider>
       );
     }
