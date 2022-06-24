@@ -1,0 +1,9 @@
+.participants-wrapper {
+  width: 250px;
+  padding: 10px;
+  background: var(--white);
+}
+
+.participant-item {
+  margin: 8px 0;
+}

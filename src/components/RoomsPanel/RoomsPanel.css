@@ -1,0 +1,16 @@
+.rooms-wrapper {
+  width: 200px;
+  padding: 10px;
+  background: var(--white);
+}
+
+.room-item {
+  cursor: pointer;
+  font-weight: 400;
+  margin: 8px 0;
+}
+
+.room-item.disabled {
+  cursor: default;
+  font-weight: 500;
+}
