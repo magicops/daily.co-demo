@@ -85,10 +85,8 @@ export default function App() {
    * Change room function
    */
   const switchRoom = useCallback(async (url) => {
-    callObject.leave();
-    setTimeout(() => {
-      callObject.join({ url: url });
-    }, 1000);
+    await callObject.leave();
+    callObject.join({ url: url });
   }, [callObject]);
 
   /**
