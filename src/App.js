@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import DailyIframe from '@daily-co/daily-js';
 import { DailyProvider } from '@daily-co/daily-react-hooks';
 
-import { pageUrlFromRoomUrl } from './utils';
+import { pageUrlFromRoomUrl, roomUrlFromPageUrl } from './utils';
 
 import HomeScreen from './components/HomeScreen/HomeScreen';
 import Call from './components/Call/Call';
@@ -25,30 +25,30 @@ const STATE_HAIRCHECK = 'STATE_HAIRCHECK';
 
 export default function App() {
   const [appState, setAppState] = useState(STATE_IDLE);
-  const [roomUrl, setRoomUrl] = useState(null);
+  const [roomUrl, setRoomUrl] = useState(roomUrlFromPageUrl());
   const [callObject, setCallObject] = useState(null);
 
-  /**
-   * We've created a room, so let's start the hair check. We won't be joining the call yet.
-   */
-  const startHairCheck = useCallback((url, force) => {
+  //create the callObject
+  useEffect(() => {
     const newCallObject = DailyIframe.createCallObject();
-    setCallObject(newCallObject);
-    setRoomUrl(url);
-    if (force) {
-      newCallObject.join({ url: url });
-    } else {
-      setAppState(STATE_HAIRCHECK);
-      newCallObject.startCamera();
-    }
-  }, []);
+    window._callObject = newCallObject
+    setCallObject(newCallObject)
+  }, [])
+
+  const startHairCheck = useCallback(async () => {
+    if (!callObject) return;
+    setAppState(STATE_HAIRCHECK);
+
+    callObject.startCamera();
+  }, [callObject]);
 
   /**
    * Once we pass the hair check, we can actually join the call.
    */
-  const joinCall = useCallback(() => {
-    callObject.join({ url: roomUrl });
-  }, [callObject, roomUrl]);
+  const joinCall = useCallback((url) => {
+    setRoomUrl(url)
+    callObject.join({ url });
+  }, [callObject]);
 
   /**
    * Start leaving the current call.
@@ -63,9 +63,10 @@ export default function App() {
    * Change room function
    */
   const switchRoom = useCallback(async (url) => {
+    if (!callObject) return;
     await callObject.leave();
-    callObject.join({ url: url });
-  }, [callObject]);
+    joinCall(url);
+  }, [callObject, joinCall]);
 
   /**
    * Update the page's URL to reflect the active call when roomUrl changes.
@@ -136,13 +137,20 @@ export default function App() {
   const showHairCheck = appState === STATE_HAIRCHECK;
 
   const renderApp = () => {
+
     // No API errors? Let's check our hair then.
-    if (showHairCheck || showCall) {
+    if (showCall || showHairCheck)
       return (
         <DailyProvider callObject={callObject}>
-          {showHairCheck ? (
-            <HairCheck joinCall={joinCall} cancelCall={startLeavingCall} />
-          ) : (
+          {showHairCheck &&
+            <HairCheck
+              roomUrl={roomUrl}
+              joinCall={joinCall}
+              cancelCall={startLeavingCall}
+            />
+          }
+
+          {showCall &&
             <>
               <div className='call-wrapper'>
                 <RoomsPanel
@@ -154,16 +162,15 @@ export default function App() {
               </div>
               <Tray leaveCall={startLeavingCall} />
             </>
-          )}
+          }
         </DailyProvider>
-      );
-    }
+      )
 
     // The default view is the HomeScreen, from where we start the demo.
     return (
       <HomeScreen startHairCheck={startHairCheck} />
-    );
-  };
+    )
+  }
 
   return (
     <div className="app">
