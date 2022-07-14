@@ -50,3 +50,21 @@
 .cancel-call {
   background: var(--white);
 }
+
+.hair-check .input-container {
+  display: flex;
+  align-items: center;
+}
+
+.hair-check .input-container .icon-button {
+  cursor: pointer;
+  padding: 2px;
+  padding-right: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hair-check .input-container select {
+  flex-grow: 1;
+}
